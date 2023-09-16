@@ -62,22 +62,22 @@ db.connect((err) => {
   }
   console.log('MySQL 데이터베이스에 연결되었습니다.');
 
-  db.query(`
-    CREATE TABLE IF NOT EXISTS userinfo (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      nickname VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL,
-      profile_picture_url VARCHAR(255),
-      kakao_id INT(255) UNIQUE
-    )
-  `, (err, result) => {
-    if (err) {
-      console.error('테이블 생성 중 오류 발생:', err);
-    } else {
-      console.log('user_info 테이블이 생성되었습니다.');
-    }
-  });
-});
+//   db.query(`
+//     CREATE TABLE IF NOT EXISTS userinfo (
+//       id INT AUTO_INCREMENT PRIMARY KEY,
+//       nickname VARCHAR(255) NOT NULL,
+//       email VARCHAR(255) NOT NULL,
+//       profile_picture_url VARCHAR(255),
+//       kakao_id INT(255) UNIQUE
+//     )
+//   `, (err, result) => {
+//     if (err) {
+//       console.error('테이블 생성 중 오류 발생:', err);
+//     } else {
+//       console.log('user_info 테이블이 생성되었습니다.');
+//     }
+//   });
+ });
 
 // POST 요청 처리
 app.post('/search', (req, res) => {
@@ -103,43 +103,67 @@ app.post('/search', (req, res) => {
   }
 });
 
+// app.get('/sendLocation', async (req, res) => {
+//   const latitude = req.query.latitude;
+//   const longitude = req.query.longitude;
+//   const sql = `
+//   SELECT 
+//   facility_name, 
+//   longitude, 
+//   latitude, 
+//   road_address, 
+//   jibun_address, 
+//   ST_Distance_Sphere(
+//       POINT(?, ?), 
+//       POINT(info.longitude, info.latitude)  
+//   ) AS distance
+// FROM info
+// ORDER BY distance
+// LIMIT 5;
 
-// 로그인 API (카카오 ID로 사용자 찾기)
-app.post('/login', (req, res) => {
-  const { kakao_id, profile_picture, nickname, email } = req.body;
-  console.log(profile_picture);
-  console.log(nickname);
-  console.log(email);
-  console.log(kakao_id);
 
-  // 데이터베이스에서 해당 kakao_id로 사용자 찾기
-  db.query('SELECT * FROM userinfo WHERE kakao_id = ?', [kakao_id], (err, results) => {
-    if (err) {
-      console.error(err.message);
-      res.status(500).json({ message: '로그인 중 오류가 발생했습니다.' });
-    } else if (results.length > 0) {
-      // 이미 존재하는 사용자인 경우, 프로필 정보를 업데이트
-      const user_id = results[0].id;
-      db.query('UPDATE userinfo SET profile_picture_url = ?,name = ?, email = ? WHERE id = ?', [profile_picture, nickname, email, user_id], (err, updateResult) => {
-        if (err) {
-          console.error(err.message);
-          res.status(500).json({ message: '로그인 중 오류가 발생했습니다.' });
-        } else {
-          res.status(200).json({ message: '로그인 성공', user_id });
-        }
-      });
-    } else {
-      // 새로운 사용자인 경우, 사용자 정보를 추가
-      db.query('INSERT INTO userinfo (profile_picture_url,name, email, kakao_id) VALUES (?, ?, ?, ?)', [profile_picture, nickname, email, kakao_id], (err, insertResult) => {
-        if (err) {
-          console.error(err.message);
-          res.status(500).json({ message: '로그인 중 오류가 발생했습니다.' });
-        } else {
-          res.status(200).json({ message: '로그인 성공', user_id: insertResult.insertId });
-        }
-      });
+//   `;
+
+//   db.query(sql, [ longitude, latitude], (err, results) => {
+//       if (err) {
+//           console.log('쿼리 실행 오류', err);
+//           res.status(500).send('서버 오류');
+//       } else {
+//           res.json(results);
+//       }
+//   });
+// });
+
+// // 로그인 API (카카오 ID로 사용자 찾기)
+// db.connect((err) => {
+//   if (err) {
+//     console.error('MySQL 연결 오류:', err);
+//     throw err;
+//   }
+//   console.log('MySQL 데이터베이스에 연결되었습니다.');
+// });
+
+// // POST 요청을 처리하는 엔드포인트
+// // POST 요청을 처리하는 엔드포인트
+// // POST 요청을 처리하는 엔드포인트
+app.post('/api/sendUserInfo', (req, res) => {
+  const { name, email, profileImage } = req.body;
+
+  // 사용자 정보를 데이터베이스에 저장 또는 업데이트합니다.
+  // 이미 존재하는 사용자인지 확인하고, 존재하지 않으면 새로운 사용자로 추가합니다.
+  db.query(
+    'INSERT INTO userinfo (nickname, email, profile_picture_url) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nickname=?, email=?, profile_picture_url=?',
+    [name, email, profileImage, name, email, profileImage],
+    (err, result) => {
+      if (err) {
+        console.error('사용자 정보 저장 또는 업데이트 중 오류 발생:', err);
+        res.status(500).json({ error: '사용자 정보를 처리하는 중 오류가 발생했습니다.' });
+      } else {
+        console.log('사용자 정보 저장 또는 업데이트 완료');
+        res.status(200).json({ message: '사용자 정보를 저장 또는 업데이트했습니다.' });
+      }
     }
-  });
+  );
 });
 
 // 찜 추가 및 찜 목록 조회 API
