@@ -27,10 +27,10 @@ db.connect((err) => {
     db.query(`
         CREATE TABLE IF NOT EXISTS userinfo (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
+            nickname VARCHAR(255) NOT NULL,
             email VARCHAR(255) NOT NULL,
             profile_picture_url VARCHAR(255),
-            kakao_id VARCHAR(255) UNIQUE
+            kakao_id INT(255) UNIQUE
         )
     `, (err, result) => {
         if (err) {
@@ -73,17 +73,34 @@ app.post('/signup', (req, res) => {
 
 // 로그인 API (카카오 ID로 사용자 찾기)
 app.post('/login', (req, res) => {
-    const { kakao_id } = req.body; 
+    const { kakao_id, profile_image, nickname, email } = req.body;
 
-    // 데이터베이스에서 해당 kakao_id
+    // 데이터베이스에서 해당 kakao_id로 사용자 찾기
     db.query('SELECT * FROM userinfo WHERE kakao_id = ?', [kakao_id], (err, results) => {
         if (err) {
             console.error(err.message);
             res.status(500).json({ message: '로그인 중 오류가 발생했습니다.' });
         } else if (results.length > 0) {
-            res.status(200).json({ message: '로그인 성공', user: results[0] });
+            // 이미 존재하는 사용자인 경우, 프로필 정보를 업데이트
+            const user_id = results[0].id;
+            db.query('UPDATE userinfo SET profile_picture_url = ?, name = ?, email = ? WHERE id = ?', [profile_image, nickname, email, user_id], (err, updateResult) => {
+                if (err) {
+                    console.error(err.message);
+                    res.status(500).json({ message: '로그인 중 오류가 발생했습니다.' });
+                } else {
+                    res.status(200).json({ message: '로그인 성공', user_id });
+                }
+            });
         } else {
-            res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+            // 새로운 사용자인 경우, 사용자 정보를 추가
+            db.query('INSERT INTO userinfo (profile_picture_url, name, email, kakao_id) VALUES (?, ?, ?, ?)', [profile_image, nickname, email, kakao_id], (err, insertResult) => {
+                if (err) {
+                    console.error(err.message);
+                    res.status(500).json({ message: '로그인 중 오류가 발생했습니다.' });
+                } else {
+                    res.status(200).json({ message: '로그인 성공', user_id: insertResult.insertId });
+                }
+            });
         }
     });
 });

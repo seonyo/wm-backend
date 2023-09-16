@@ -1,11 +1,13 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
+const cors = require('cors'); // cors 미들웨어 추가
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+app.use(cors()); // CORS 미들웨어를 추가하여 모든 도메인에서의 요청 허용 (개발용)
 
 // MySQL 데이터베이스 설정
 const db = mysql.createConnection({
@@ -14,6 +16,7 @@ const db = mysql.createConnection({
     password: '0000',  // MySQL 비밀번호
     database: 'wm'     // 사용할 데이터베이스 이름
 });
+
 
 // 데이터베이스 연결
 db.connect((err) => {
@@ -41,16 +44,17 @@ db.connect((err) => {
 });
 
 // 찜 추가 및 찜 목록 조회 API
+// 찜 추가 및 찜 목록 조회 API
 app.post('/like', (req, res) => {
-    const { user_id, store_id } = req.body; // "kakao_id"를 "user_id"로 변경
+    const { user_id, store_id } = req.body;
 
     if (!user_id || !store_id) {
-        res.status(400).json({ message: 'user_id와 store_id는 필수 입력 사항입니다.' }); // 에러 메시지 수정
+        res.status(400).json({ message: 'user_id와 store_id는 필수 입력 사항입니다.' });
         return;
     }
 
     // 사용자 및 상점 정보는 각각 userinfo 및 info 테이블에서 가져오기
-    db.query('SELECT id FROM userinfo WHERE id = ?', [user_id], (err, userResults) => { // "kakao_id"를 "id"로 변경
+    db.query('SELECT id FROM userinfo WHERE id = ?', [user_id], (err, userResults) => {
         if (err) {
             console.error(err.message);
             res.status(500).json({ message: '사용자 정보 조회 중 오류가 발생했습니다.' });
@@ -87,6 +91,7 @@ app.post('/like', (req, res) => {
         });
     });
 });
+
 
 // 서버 시작
 app.listen(PORT, () => {
