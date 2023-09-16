@@ -142,29 +142,51 @@ app.post('/search', (req, res) => {
 //   }
 //   console.log('MySQL 데이터베이스에 연결되었습니다.');
 // });
-
-// // POST 요청을 처리하는 엔드포인트
-// // POST 요청을 처리하는 엔드포인트
-// // POST 요청을 처리하는 엔드포인트
 app.post('/api/sendUserInfo', (req, res) => {
   const { name, email, profileImage } = req.body;
 
-  // 사용자 정보를 데이터베이스에 저장 또는 업데이트합니다.
-  // 이미 존재하는 사용자인지 확인하고, 존재하지 않으면 새로운 사용자로 추가합니다.
-  db.query(
-    'INSERT INTO userinfo (nickname, email, profile_picture_url) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nickname=?, email=?, profile_picture_url=?',
-    [name, email, profileImage, name, email, profileImage],
-    (err, result) => {
-      if (err) {
-        console.error('사용자 정보 저장 또는 업데이트 중 오류 발생:', err);
-        res.status(500).json({ error: '사용자 정보를 처리하는 중 오류가 발생했습니다.' });
-      } else {
-        console.log('사용자 정보 저장 또는 업데이트 완료');
-        res.status(200).json({ message: '사용자 정보를 저장 또는 업데이트했습니다.' });
-      }
+  // Check if the user already exists in the database
+  db.query('SELECT * FROM userinfo WHERE email = ?', [email], (err, results) => {
+    if (err) {
+      console.error('사용자 정보 조회 중 오류 발생:', err);
+      res.status(500).json({ error: '사용자 정보를 처리하는 중 오류가 발생했습니다.' });
+      return;
     }
-  );
+
+    if (results.length > 0) {
+      // User already exists, update the existing record
+      db.query(
+        'UPDATE userinfo SET nickname = ?, profile_picture_url = ? WHERE email = ?',
+        [name, profileImage, email],
+        (err, updateResult) => {
+          if (err) {
+            console.error('사용자 정보 업데이트 중 오류 발생:', err);
+            res.status(500).json({ error: '사용자 정보를 업데이트하는 중 오류가 발생했습니다.' });
+          } else {
+            console.log('사용자 정보 업데이트 완료');
+            res.status(200).json({ message: '사용자 정보를 업데이트했습니다.' });
+          }
+        }
+      );
+    } else {
+      // User does not exist, insert a new record
+      db.query(
+        'INSERT INTO userinfo (nickname, email, profile_picture_url) VALUES (?, ?, ?)',
+        [name, email, profileImage],
+        (err, insertResult) => {
+          if (err) {
+            console.error('사용자 정보 저장 중 오류 발생:', err);
+            res.status(500).json({ error: '사용자 정보를 처리하는 중 오류가 발생했습니다.' });
+          } else {
+            console.log('사용자 정보 저장 완료');
+            res.status(200).json({ message: '사용자 정보를 저장했습니다.' });
+          }
+        }
+      );
+    }
+  });
 });
+
 
 // 찜 추가 및 찜 목록 조회 API
 app.post('/like', (req, res) => {
