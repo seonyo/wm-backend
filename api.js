@@ -18,6 +18,7 @@ const db = mysql.createConnection({
   password: '0000',
   database: 'wm'
 });
+
 app.use(session({
   secret: "0fd52107db31ebeea09da3c053348a13", // 세션을 암호화하는 데 사용되는 키
   resave: true,
@@ -164,6 +165,7 @@ app.post('/api/sendUserInfo', (req, res) => {
             res.status(500).json({ error: '사용자 정보를 업데이트하는 중 오류가 발생했습니다.' });
           } else {
             console.log('사용자 정보 업데이트 완료');
+            localStorage.setItem("name", name);
             res.status(200).json({ message: '사용자 정보를 업데이트했습니다.' });
           }
         }
