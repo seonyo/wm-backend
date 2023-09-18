@@ -172,9 +172,10 @@ app.post('/api/sendUserInfo', (req, res) => {
                 }
                 const userId = selectResult[0].id;
                 console.log(userId);
-                res.send(userId + "");
+                res.syend(userId + "");
               }
             )
+
           }
         }
       );

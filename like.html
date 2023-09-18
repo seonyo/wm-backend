@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>찜한 장소</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="CSS/like.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div id="box">
+        <div class="nav container">
+            <div class="flex">
+                <i class="fas fa-star" style="font-size: 1.5rem; color: #FFC700;"  onclick="window.location.href='searchresult.html'"></i>
+                <div class="title">
+                    <i class="fas fa-star" style="font-size: 1.5rem; color: #FFC700;"></i>
+                    <div class="container">
+                        <h1>찜한 장소</h1>
+                        <div id="likedPlacesList">
+                            <!-- 찜한 장소 목록을 여기에 표시합니다. -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // 찜한 장소 목록을 가져와서 표시하는 함수
+        function fetchLikedPlaces() {
+            const userId = encodeURIComponent(localStorage.getItem("name")); // 사용자 ID 예시
+            var id = 1;
+            // 서버로 GET 요청 보내기
+            fetch(`http://localhost:3000/liked-places?id=${userId}`, {
+                method: 'GET'
+            })
+                .then(response => response.json()) // JSON으로 파싱
+                .then(data => {
+                    const likedPlacesList = document.getElementById('likedPlacesList');
+                    data.forEach(result => {
+                        const placeElement = document.createElement('div');
+                        placeElement.classList.add('liked-place');
+                        placeElement.innerHTML = `
+                        ${result.road_address}<br><hr>`
+                        likedPlacesList.appendChild(placeElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('오류 발생:', error);
+                });
+        }
+
+        // 페이지 로드 시 찜한 장소 목록을 가져와서 표시
+        fetchLikedPlaces();
+    </script>
+</body>
+</html>
