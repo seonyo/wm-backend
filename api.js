@@ -4,7 +4,7 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const session = require('express-session'); 
+const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -63,22 +63,22 @@ db.connect((err) => {
   }
   console.log('MySQL 데이터베이스에 연결되었습니다.');
 
-//   db.query(`
-//     CREATE TABLE IF NOT EXISTS userinfo (
-//       id INT AUTO_INCREMENT PRIMARY KEY,
-//       nickname VARCHAR(255) NOT NULL,
-//       email VARCHAR(255) NOT NULL,
-//       profile_picture_url VARCHAR(255),
-//       kakao_id INT(255) UNIQUE
-//     )
-//   `, (err, result) => {
-//     if (err) {
-//       console.error('테이블 생성 중 오류 발생:', err);
-//     } else {
-//       console.log('user_info 테이블이 생성되었습니다.');
-//     }
-//   });
- });
+  //   db.query(`
+  //     CREATE TABLE IF NOT EXISTS userinfo (
+  //       id INT AUTO_INCREMENT PRIMARY KEY,
+  //       nickname VARCHAR(255) NOT NULL,
+  //       email VARCHAR(255) NOT NULL,
+  //       profile_picture_url VARCHAR(255),
+  //       kakao_id INT(255) UNIQUE
+  //     )
+  //   `, (err, result) => {
+  //     if (err) {
+  //       console.error('테이블 생성 중 오류 발생:', err);
+  //     } else {
+  //       console.log('user_info 테이블이 생성되었습니다.');
+  //     }
+  //   });
+});
 
 // POST 요청 처리
 app.post('/search', (req, res) => {
@@ -145,7 +145,6 @@ app.post('/search', (req, res) => {
 // });
 app.post('/api/sendUserInfo', (req, res) => {
   const { name, email, profileImage } = req.body;
-
   // Check if the user already exists in the database
   db.query('SELECT * FROM userinfo WHERE email = ?', [email], (err, results) => {
     if (err) {
@@ -165,17 +164,25 @@ app.post('/api/sendUserInfo', (req, res) => {
             res.status(500).json({ error: '사용자 정보를 업데이트하는 중 오류가 발생했습니다.' });
           } else {
             console.log('사용자 정보 업데이트 완료');
-            localStorage.setItem("name", name);
-            res.status(200).json({ message: '사용자 정보를 업데이트했습니다.' });
+
+            db.query(
+              'SELECT id FROM userinfo where email = ?', [email], (selectErr, selectResult) => {
+                if (selectErr) {
+                  console.log("불러오지 못했어요");
+                }
+                const userId = selectResult[0].id;
+                console.log(userId);
+                res.syend(userId + "");
+              }
+            )
+
           }
         }
       );
     } else {
       // User does not exist, insert a new record
       db.query(
-        'INSERT INTO userinfo (nickname, email, profile_picture_url) VALUES (?, ?, ?)',
-        [name, email, profileImage],
-        (err, insertResult) => {
+        'INSERT INTO userinfo (nickname, email, profile_picture_url) VALUES (?, ?, ?)', [name, email, profileImage], (err, insertResult) => {
           if (err) {
             console.error('사용자 정보 저장 중 오류 발생:', err);
             res.status(500).json({ error: '사용자 정보를 처리하는 중 오류가 발생했습니다.' });
@@ -195,45 +202,45 @@ app.post('/like', (req, res) => {
   const { user_id, store_id } = req.body;
 
   if (!user_id || !store_id) {
-      res.status(400).json({ message: 'user_id와 store_id는 필수 입력 사항입니다.' });
-      return;
+    res.status(400).json({ message: 'user_id와 store_id는 필수 입력 사항입니다.' });
+    return;
   }
 
   db.query('SELECT id FROM userinfo WHERE id = ?', [user_id], (err, userResults) => {
+    if (err) {
+      console.error(err.message);
+      res.status(500).json({ message: '사용자 정보 조회 중 오류가 발생했습니다.' });
+      return;
+    }
+
+    db.query('SELECT id FROM info WHERE id = ?', [store_id], (err, storeResults) => {
       if (err) {
-          console.error(err.message);
-          res.status(500).json({ message: '사용자 정보 조회 중 오류가 발생했습니다.' });
-          return;
+        console.error(err.message);
+        res.status(500).json({ message: '상점 정보 조회 중 오류가 발생했습니다.' });
+        return;
       }
 
-      db.query('SELECT id FROM info WHERE id = ?', [store_id], (err, storeResults) => {
-          if (err) {
-              console.error(err.message);
-              res.status(500).json({ message: '상점 정보 조회 중 오류가 발생했습니다.' });
-              return;
-          }
+      if (userResults.length === 0) {
+        res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+        return;
+      }
 
-          if (userResults.length === 0) {
-              res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
-              return;
-          }
+      if (storeResults.length === 0) {
+        res.status(404).json({ message: '상점을 찾을 수 없습니다.' });
+        return;
+      }
 
-          if (storeResults.length === 0) {
-              res.status(404).json({ message: '상점을 찾을 수 없습니다.' });
-              return;
-          }
-
-          // 찜 추가
-          db.query('INSERT INTO likes (user_id, store_id) VALUES (?, ?)', [user_id, store_id], (err, result) => {
-              if (err) {
-                  console.error(err.message);
-                  res.status(500).json({ message: '찜 추가 중 오류가 발생했습니다.' });
-              } else {
-                  // 찜 추가 성공
-                  res.status(201).json({ message: '찜 추가 성공' });
-              }
-          });
+      // 찜 추가
+      db.query('INSERT INTO likes (user_id, store_id) VALUES (?, ?)', [user_id, store_id], (err, result) => {
+        if (err) {
+          console.error(err.message);
+          res.status(500).json({ message: '찜 추가 중 오류가 발생했습니다.' });
+        } else {
+          // 찜 추가 성공
+          res.status(201).json({ message: '찜 추가 성공' });
+        }
       });
+    });
   });
 });
 
@@ -260,7 +267,7 @@ app.get(`/liked-places`, (req, res) => {
   const userId = req.query.id; // 클라이언트에서 전송한 사용자 ID를 가져옴
 
   // 사용자 ID를 사용하여 해당 사용자가 찜한 장소 목록을 조회
-  db.query('select * from likes l inner join info i on l.store_id = i.id where user_id = ?', [userId], (err, results) => {
+  db.query('SELECT * FROM likes l INNER JOIN info i ON l.store_id = i.id WHERE user_id = ?', [userId], (err, results) => {
     if (err) {
       console.error(err.message);
       res.status(500).json({ message: '찜한 장소 목록을 가져오는 중 오류가 발생했습니다.' });
